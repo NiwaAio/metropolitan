@@ -53,7 +53,32 @@ async def init_db():
                 PRIMARY KEY (guild_id, item_id)
             )
         """)
+        # Ежедневное сообщение (сбор кв)
+        await db.execute("""
+                         CREATE TABLE IF NOT EXISTS raid_notify
+                         (
+                             guild_id
+                             INTEGER
+                             PRIMARY
+                             KEY,
+                             channel_id
+                             INTEGER,
+                             role_id
+                             INTEGER,
+                             days
+                             TEXT
+                             DEFAULT
+                             '1,2,3,4,5,6,7',
+                             enabled
+                             BOOLEAN
+                             DEFAULT
+                             0,
+                             postpone_until
+                             REAL
+                         )
+                         """)
         await db.commit()
+
 
 # ---------- Предупреждения ----------
 async def get_warnings(user_id: int, guild_id: int) -> int:
@@ -150,4 +175,66 @@ async def get_wiki_entry(guild_id: int, item_id: str):
 async def delete_wiki_entry(guild_id: int, item_id: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("DELETE FROM wiki_entries WHERE guild_id=? AND item_id=?", (guild_id, item_id))
+        await db.commit()
+
+# ---------- Функции для raid_notify ----------
+async def get_raid_settings(guild_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT channel_id, role_id, days, enabled, postpone_until FROM raid_notify WHERE guild_id=?", (guild_id,)) as cursor:
+            row = await cursor.fetchone()
+            if row:
+                return {
+                    "channel_id": row[0],
+                    "role_id": row[1],
+                    "days": row[2].split(',') if row[2] else [],
+                    "enabled": bool(row[3]),
+                    "postpone_until": row[4]
+                }
+            return None
+
+async def set_raid_channel(guild_id: int, channel_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            INSERT INTO raid_notify (guild_id, channel_id)
+            VALUES (?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET channel_id=excluded.channel_id
+        """, (guild_id, channel_id))
+        await db.commit()
+
+async def set_raid_role(guild_id: int, role_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            INSERT INTO raid_notify (guild_id, role_id)
+            VALUES (?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET role_id=excluded.role_id
+        """, (guild_id, role_id))
+        await db.commit()
+
+async def set_raid_days(guild_id: int, days: list):
+    """days: список чисел от 1 (пн) до 7 (вс)"""
+    days_str = ','.join(map(str, days))
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            INSERT INTO raid_notify (guild_id, days)
+            VALUES (?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET days=excluded.days
+        """, (guild_id, days_str))
+        await db.commit()
+
+async def set_raid_enabled(guild_id: int, enabled: bool):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            INSERT INTO raid_notify (guild_id, enabled)
+            VALUES (?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET enabled=excluded.enabled
+        """, (guild_id, enabled))
+        await db.commit()
+
+async def set_raid_postpone(guild_id: int, until_timestamp: float):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            INSERT INTO raid_notify (guild_id, postpone_until)
+            VALUES (?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET postpone_until=excluded.postpone_until
+        """, (guild_id, until_timestamp))
         await db.commit()
