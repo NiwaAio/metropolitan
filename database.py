@@ -5,7 +5,7 @@ DB_PATH = "data/bot.db"
 # ---------- Инициализация ----------
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
-        # Предупреждения (варны)
+        # Предупреждения
         await db.execute("""
             CREATE TABLE IF NOT EXISTS warnings (
                 user_id INTEGER,
@@ -55,7 +55,7 @@ async def init_db():
         """)
         await db.commit()
 
-# ---------- Предупреждения (варны) ----------
+# ---------- Предупреждения ----------
 async def get_warnings(user_id: int, guild_id: int) -> int:
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute("SELECT count FROM warnings WHERE user_id=? AND guild_id=?", (user_id, guild_id)) as cursor:

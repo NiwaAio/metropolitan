@@ -19,8 +19,7 @@ class AntiNuke(commands.Cog):
         self.ban_events[guild.id] = [(uid, ts) for uid, ts in self.ban_events[guild.id] if now - ts < 10]
         self.ban_events[guild.id].append((user.id, now))
         if len(self.ban_events[guild.id]) >= 5:
-            # Найдём, кто банит (нужно логировать, но нельзя получить виновника в on_member_ban)
-            # Защита: временно заблокировать модерацию? Для простоты отправим в лог.
+            # Защита: временно заблокировать модерацию
             log_channel = self.bot.get_channel(await self.get_log_channel(guild.id))
             if log_channel:
                 await log_channel.send("⚠️ **Обнаружена массовая блокировка!** Возможная атака. Проверьте действия модераторов.")

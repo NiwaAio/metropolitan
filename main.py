@@ -22,7 +22,7 @@ class MyBot(commands.Bot):
         await self.load_extension("cogs.wiki")
         await self.load_extension("cogs.gambling")
         await self.load_extension("cogs.images")
-        # Автороли и приветствия (отдельный cog)
+        # Автороли и приветствия
         await self.load_extension("cogs.autoroles_greetings")
         await self.load_extension("cogs.info")
         await self.load_extension("cogs.reminders")

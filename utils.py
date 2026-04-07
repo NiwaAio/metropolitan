@@ -2,11 +2,11 @@ import re
 from config import BAD_WORDS, WHITELIST_USER_IDS
 
 def is_whitelisted(user_id: int) -> bool:
-    """Проверяет, находится ли пользователь в белом списке (фильтр мата не применяется)"""
+    """Проверка, находится ли пользователь в белом списке"""
     return user_id in WHITELIST_USER_IDS
 
 def contains_bad_words(text: str) -> bool:
-    """Проверяет, содержит ли текст целое слово из списка BAD_WORDS"""
+    """Проверка, содержит ли текст целое слово из списка"""
     text_lower = text.lower()
     for word in BAD_WORDS:
         pattern = r'\b' + re.escape(word.lower()) + r'\b'

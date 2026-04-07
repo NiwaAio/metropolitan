@@ -18,7 +18,7 @@ class AutoRolesGreetings(commands.Cog):
         if welcome_channel_id:
             channel = member.guild.get_channel(welcome_channel_id)
             if channel:
-                await channel.send(f"🎉 Встречайте, {member.mention}! Добро пожаловать на сервер!")
+                await channel.send(f"Мир в страдании, {member.mention}! Добро пожаловать на сервер!")
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
@@ -26,7 +26,7 @@ class AutoRolesGreetings(commands.Cog):
         if goodbye_channel_id:
             channel = member.guild.get_channel(goodbye_channel_id)
             if channel:
-                await channel.send(f"👋 Заглядывай, {member.display_name} покинул сервер.")
+                await channel.send(f"👋 Мир в страдании, {member.display_name} покинул сервер.")
 
     @app_commands.command(name="setautorole", description="Установить роль для новичков")
     @app_commands.default_permissions(administrator=True)

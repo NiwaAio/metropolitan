@@ -16,17 +16,14 @@ class Moderation(commands.Cog):
         self.bot = bot
         self.spam_tracker = {}
 
-    # Авто-модерация (без изменений)
+    # Авто-модерация
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot or not message.guild:
             return
 
-        # Если пользователь в белом списке – пропускаем проверки мата и инвайтов
         if is_whitelisted(message.author.id):
-            # Всё равно проверим спам (защита от флуда) – можно оставить
-            # (код спам-защиты идёт ниже, не прерываем)
-            pass  # просто идём дальше, не удаляя сообщение
+            pass
 
         else:
             # Проверка включён ли фильтр
@@ -67,7 +64,7 @@ class Moderation(commands.Cog):
                 pass
             self.spam_tracker[channel_id][user_id] = []
 
-    # ---------- Команды модерации (требуют прав) ----------
+    # ---------- Команды модерации ----------
     @app_commands.command(name="mute", description="Замутить участника на указанное время")
     @app_commands.default_permissions(moderate_members=True)
     async def slash_mute(self, interaction: discord.Interaction, member: discord.Member, duration: str = "1h", reason: str = "Не указана"):
