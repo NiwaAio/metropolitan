@@ -1,0 +1,39 @@
+# Secrets
+.env
+token.txt
+secret.txt
+*.key
+*.pem
+*.crt
+
+# Database
+data/*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+venv/
+.venv/
+env/
+.env/
+.virtualenvs/
+pip-wheel-metadata/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
