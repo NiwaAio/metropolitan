@@ -35,6 +35,10 @@ class MyBot(commands.Bot):
         # Синхронизация слеш-команд
         await self.tree.sync()
         print(f"Синхронизировано {len(self.tree.get_commands())} слеш-команд")
+        synced_commands = await self.tree.sync()
+        print(f"Синхронизировано команд: {len(synced_commands)}")
+        for cmd in synced_commands:
+            print(f" /{cmd.name}")
 
         # Фоновая задача для временных ролей
         self.loop.create_task(self.check_temp_roles())

@@ -100,5 +100,17 @@ class RaidNotify(commands.Cog):
         await set_raid_postpone(interaction.guild.id, until.timestamp())
         await interaction.response.send_message(f"Уведомления отложены до {until.strftime('%Y-%m-%d %H:%M')} МСК.", ephemeral=True)
 
+    @app_commands.default_permissions(administrator=True)
+    @app_commands.command(name="sync", description="Принудительная синхронизация команд")
+    async def sync_commands(self, interaction: discord.Interaction):
+        if interaction.user.id == self.bot.user.id != 928223250255863848:
+            await interaction.response.send_message("У вас нет прав на использование этой команды.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+        synced = await self.bot.tree.sync()
+        await interaction.followup.send(f"Синхронизировано {len(synced)} команд.", ephemeral=True)
+
 async def setup(bot):
+    print("🔧 Загружаем cog RaidNotify")
     await bot.add_cog(RaidNotify(bot))

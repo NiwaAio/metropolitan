@@ -8,10 +8,13 @@ class ReactionRoles(commands.Cog):
         self.bot = bot
 
     # Создаём группу команд /rr
-    rr_group = app_commands.Group(name="rr", description="Управление реакционными ролями")
+    rr_group = app_commands.Group(
+        name="rr",
+        description="Управление реакционными ролями (только для администраторов)",
+        default_permissions=discord.Permissions(administrator=True)
+    )
 
     @rr_group.command(name="add", description="Привязать эмодзи к роли для сообщения")
-    @app_commands.default_permissions(administrator=True)
     async def rr_add(self, interaction: discord.Interaction, message_id: str, emoji: str, role: discord.Role):
         try:
             msg_id = int(message_id)
@@ -28,7 +31,6 @@ class ReactionRoles(commands.Cog):
             await interaction.response.send_message(f"⚠️ Не удалось добавить реакцию: {e}", ephemeral=True)
 
     @rr_group.command(name="remove", description="Удалить привязку эмодзи к роли")
-    @app_commands.default_permissions(administrator=True)
     async def rr_remove(self, interaction: discord.Interaction, message_id: str, emoji: str):
         try:
             msg_id = int(message_id)
@@ -39,7 +41,6 @@ class ReactionRoles(commands.Cog):
         await interaction.response.send_message("Привязка удалена.", ephemeral=True)
 
     @rr_group.command(name="list", description="Показать все привязки для сообщения")
-    @app_commands.default_permissions(administrator=True)
     async def rr_list(self, interaction: discord.Interaction, message_id: str):
         try:
             msg_id = int(message_id)
