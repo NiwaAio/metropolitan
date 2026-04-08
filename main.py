@@ -11,7 +11,7 @@ class MyBot(commands.Bot):
         self.remove_command('help')
 
     async def setup_hook(self):
-        # Загружаем все cogs
+        # Загружаем все коги
         await self.load_extension("cogs.moderation")
         await self.load_extension("cogs.reaction_roles")
         await self.load_extension("cogs.temp_roles")
@@ -22,25 +22,16 @@ class MyBot(commands.Bot):
         await self.load_extension("cogs.wiki")
         await self.load_extension("cogs.gambling")
         await self.load_extension("cogs.images")
-        await self.load_extension("cogs.raid_notify")
-        # Автороли и приветствия
         await self.load_extension("cogs.autoroles_greetings")
         await self.load_extension("cogs.info")
         await self.load_extension("cogs.reminders")
         await self.load_extension("cogs.poll")
+        await self.load_extension("cogs.raid_notify")
 
-        # Инициализация БД
+        # Инициализация базы данных
         await database.init_db()
 
-        # Синхронизация слеш-команд
-        await self.tree.sync()
-        print(f"Синхронизировано {len(self.tree.get_commands())} слеш-команд")
-        synced_commands = await self.tree.sync()
-        print(f"Синхронизировано команд: {len(synced_commands)}")
-        for cmd in synced_commands:
-            print(f" /{cmd.name}")
-
-        # Фоновая задача для временных ролей
+        # self.tree.sync()
         self.loop.create_task(self.check_temp_roles())
 
     async def check_temp_roles(self):
@@ -66,7 +57,8 @@ bot = MyBot()
 
 @bot.event
 async def on_ready():
-    print(f"Бот {bot.user} запущен!")
+    print(f"✅ Бот {bot.user} запущен!")
+    await bot.change_presence(activity=discord.Game(name="Используй /help"))
 
 if __name__ == "__main__":
     bot.run(config.TOKEN)

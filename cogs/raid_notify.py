@@ -157,5 +157,12 @@ class RaidNotify(commands.Cog):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    @app_commands.command(name="sync", description="Принудительная синхронизация слеш-команд (только администраторы)")
+    @app_commands.default_permissions(administrator=True)
+    async def sync_commands(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        synced = await self.bot.tree.sync()
+        await interaction.followup.send(f"✅ Синхронизировано {len(synced)} команд.", ephemeral=True)
+
 async def setup(bot):
     await bot.add_cog(RaidNotify(bot))
