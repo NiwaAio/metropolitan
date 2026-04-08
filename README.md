@@ -1,0 +1,1 @@
+This is a Discord bot for moderation. Specifically created for the servers of the game "STALCRAFT:X". The bot was designed only for the "Apostles of the Abyss" ("Апостолы бездны") server, so it can only be configured through code modification/special commands.

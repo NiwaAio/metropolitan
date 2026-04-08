@@ -1,4 +1,5 @@
 import aiosqlite
+import sqlite3
 
 DB_PATH = "data/bot.db"
 
@@ -106,6 +107,17 @@ async def init_db():
                              REAL
                          )
                          """)
+        columns = await db.execute_fetchall("PRAGMA table_info(raid_notify)")
+        existing = [col[1] for col in columns]
+        if 'times' not in existing:
+            await db.execute("ALTER TABLE raid_notify ADD COLUMN times TEXT DEFAULT '19:40,19:45,19:50,19:55'")
+        if 'days' not in existing:
+            await db.execute("ALTER TABLE raid_notify ADD COLUMN days TEXT DEFAULT '1,2,3,4,5,6,7'")
+        if 'enabled' not in existing:
+            await db.execute("ALTER TABLE raid_notify ADD COLUMN enabled BOOLEAN DEFAULT 0")
+        if 'postpone_until' not in existing:
+            await db.execute("ALTER TABLE raid_notify ADD COLUMN postpone_until REAL")
+        await db.commit()
 
 
 # ---------- Предупреждения ----------
