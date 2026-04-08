@@ -118,6 +118,10 @@ async def init_db():
         if 'postpone_until' not in existing:
             await db.execute("ALTER TABLE raid_notify ADD COLUMN postpone_until REAL")
         await db.commit()
+        try:
+            await db.execute("ALTER TABLE raid_notify ADD COLUMN last_bonus_date TEXT")
+        except:
+            pass
 
 
 # ---------- Предупреждения ----------
@@ -297,4 +301,14 @@ async def set_raid_postpone(guild_id: int, until_timestamp: float):
 async def cancel_raid_postpone(guild_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE raid_notify SET postpone_until = NULL WHERE guild_id = ?", (guild_id,))
+        await db.commit()
+async def get_last_bonus_date(guild_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT last_bonus_date FROM raid_notify WHERE guild_id=?", (guild_id,)) as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row else None
+
+async def set_last_bonus_date(guild_id: int, date_str: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE raid_notify SET last_bonus_date = ? WHERE guild_id = ?", (date_str, guild_id))
         await db.commit()
