@@ -18,7 +18,7 @@ class AutoRolesGreetings(commands.Cog):
         if welcome_channel_id:
             channel = member.guild.get_channel(welcome_channel_id)
             if channel:
-                await channel.send(f"Мир в страдании, {member.mention}! Добро пожаловать на сервер!")
+                await channel.send(f"🙏 В страдание вступил {member.mention}! Да примет он Зону в сердце своё.")
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
@@ -26,19 +26,19 @@ class AutoRolesGreetings(commands.Cog):
         if goodbye_channel_id:
             channel = member.guild.get_channel(goodbye_channel_id)
             if channel:
-                await channel.send(f"👋 Мир в страдании, {member.display_name} покинул сервер.")
+                await channel.send(f"👋 Покинул братство {member.display_name}. Да будет путь его проклят.")
 
     @app_commands.command(name="setautorole", description="Установить роль для новичков")
     @app_commands.default_permissions(administrator=True)
     async def set_autorole(self, interaction: discord.Interaction, role: discord.Role):
         await set_guild_setting(interaction.guild.id, "auto_role_id", role.id)
-        await interaction.response.send_message(f"Автороль установлена: {role.mention}", ephemeral=True)
+        await interaction.response.send_message(f"✅ Автороль установлена: {role.mention}", ephemeral=True)
 
     @app_commands.command(name="setwelcomechannel", description="Установить канал для приветствий")
     @app_commands.default_permissions(administrator=True)
     async def set_welcomechannel(self, interaction: discord.Interaction, channel: discord.TextChannel):
         await set_guild_setting(interaction.guild.id, "welcome_channel_id", channel.id)
-        await interaction.response.send_message(f"Канал приветствий: {channel.mention}", ephemeral=True)
+        await interaction.response.send_message(f"✅ Канал приветствий: {channel.mention}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(AutoRolesGreetings(bot))

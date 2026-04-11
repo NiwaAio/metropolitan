@@ -8,13 +8,13 @@ class Reminders(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="remind", description="Установить напоминание")
+    @app_commands.command(name="remind", description="Установить напоминание о страдании")
     async def remind(self, interaction: discord.Interaction, duration: str, *, text: str):
         seconds = parse_time_duration(duration)
-        await interaction.response.send_message(f"Напомню через {duration}: {text}", ephemeral=True)
+        await interaction.response.send_message(f"Запечатлею в свитках. Напомню через {duration}: {text}", ephemeral=True)
         await asyncio.sleep(seconds)
         try:
-            await interaction.user.send(f"⏰ Напоминание: {text}")
+            await interaction.user.send(f"⏰ Час страданий настал: {text}")
         except:
             pass
 

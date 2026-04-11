@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 import asyncio
 import config
 import database
@@ -11,7 +12,6 @@ class MyBot(commands.Bot):
         self.remove_command('help')
 
     async def setup_hook(self):
-        # Загружаем все коги
         await self.load_extension("cogs.moderation")
         await self.load_extension("cogs.reaction_roles")
         await self.load_extension("cogs.temp_roles")
@@ -27,11 +27,14 @@ class MyBot(commands.Bot):
         await self.load_extension("cogs.reminders")
         await self.load_extension("cogs.poll")
         await self.load_extension("cogs.raid_notify")
+        await self.load_extension("cogs.attendance")
+        await self.load_extension("cogs.ticket_absence")
+        await self.load_extension("cogs.ocr_attendance")
+        await self.load_extension("cogs.ticket_registration")
+        await self.load_extension("cogs.report_generator")
 
-        # Инициализация базы данных
         await database.init_db()
 
-        # self.tree.sync()
         self.loop.create_task(self.check_temp_roles())
 
     async def check_temp_roles(self):
@@ -54,6 +57,32 @@ class MyBot(commands.Bot):
             await asyncio.sleep(30)
 
 bot = MyBot()
+
+@bot.tree.command(name="sync", description="Принудительная синхронизация команд (только владелец)")
+@app_commands.default_permissions(administrator=True)
+async def slash_sync(interaction: discord.Interaction):
+    if hasattr(config, 'OWNER_IDS') and interaction.user.id not in config.OWNER_IDS:
+        await interaction.response.send_message("У вас нет прав на использование этой команды.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    try:
+        synced = await bot.tree.sync()
+        await interaction.followup.send(f"✅ Синхронизировано {len(synced)} команд.", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Ошибка синхронизации: {e}", ephemeral=True)
+
+@bot.command(name="sync")
+@commands.is_owner()
+async def text_sync(ctx: commands.Context):
+    async with ctx.typing():
+        try:
+            bot.tree.copy_global_to(guild=ctx.guild)
+            synced = await bot.tree.sync(guild=ctx.guild)
+            await ctx.send(f'✅ Синхронизировано {len(synced)} команд для сервера **{ctx.guild.name}**.')
+        except Exception as e:
+            await ctx.send(f'❌ Ошибка: {e}')
+    await asyncio.sleep(5)
+    await ctx.message.delete()
 
 @bot.event
 async def on_ready():

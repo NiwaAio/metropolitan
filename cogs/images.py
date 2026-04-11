@@ -10,18 +10,18 @@ class Images(commands.Cog):
 
     IMAGES_PATH = "assets/images/"
 
-    @app_commands.command(name="meme", description="Случайный мем")
+    @app_commands.command(name="meme", description="Случайное знамение")
     async def meme(self, interaction: discord.Interaction):
         await self.send_random_image(interaction, "meme")
 
     async def send_random_image(self, interaction: discord.Interaction, folder: str):
         path = os.path.join(self.IMAGES_PATH, folder)
         if not os.path.exists(path):
-            await interaction.response.send_message("Папка с картинками не найдена. Обратитесь к администратору.", ephemeral=True)
+            await interaction.response.send_message("❌ Хранилище знамений не освящено. Обратись к Митрополиту.", ephemeral=True)
             return
         files = [f for f in os.listdir(path) if f.endswith(('.png', '.jpg', '.jpeg', '.gif'))]
         if not files:
-            await interaction.response.send_message("В этой категории пока нет картинок.", ephemeral=True)
+            await interaction.response.send_message("❌ В хранилище нет знамений.", ephemeral=True)
             return
         chosen = random.choice(files)
         file = discord.File(os.path.join(path, chosen), filename=chosen)

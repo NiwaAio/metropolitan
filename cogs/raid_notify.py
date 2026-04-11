@@ -3,13 +3,13 @@ from discord.ext import commands, tasks
 from discord import app_commands
 import asyncio
 import datetime
-import pytz
 import random
 import os
+import pytz
 from database import (
     get_raid_settings, set_raid_channel, set_raid_role,
     set_raid_days, set_raid_enabled, set_raid_postpone,
-    set_raid_times, reset_raid_times,
+    set_raid_times, reset_raid_times, cancel_raid_postpone,
     get_last_bonus_date, set_last_bonus_date
 )
 
@@ -23,7 +23,7 @@ class RaidNotify(commands.Cog):
 
     async def cog_load(self):
         self.raid_loop.start()
-        print("✅ RaidNotify: цикл уведомлений запущен")
+        print("RaidNotify: цикл гласа Господня запущен")
 
     def cog_unload(self):
         self.raid_loop.cancel()
@@ -33,21 +33,18 @@ class RaidNotify(commands.Cog):
         await self.bot.wait_until_ready()
         now_moscow = datetime.datetime.now(MOSCOW_TZ)
         current_time_str = now_moscow.strftime("%H:%M")
-        current_weekday = now_moscow.isoweekday()  # 1=пн ... 7=вс
+        current_weekday = now_moscow.isoweekday()
+        today_str = now_moscow.strftime("%Y-%m-%d")
 
         for guild in self.bot.guilds:
             settings = await get_raid_settings(guild.id)
-            if not settings or not settings.get("enabled"):
+            if not settings or not settings["enabled"]:
                 continue
-
-            if settings.get("postpone_until") and now_moscow.timestamp() < settings["postpone_until"]:
+            if settings["postpone_until"] and now_moscow.timestamp() < settings["postpone_until"]:
                 continue
-
-            if settings.get("days") and current_weekday not in map(int, settings["days"]):
+            if settings["days"] and current_weekday not in map(int, settings["days"]):
                 continue
-
-            times = settings.get("times", DEFAULT_TIMES)
-            if current_time_str not in times:
+            if current_time_str not in settings["times"]:
                 continue
 
             channel = guild.get_channel(settings["channel_id"])
@@ -60,10 +57,9 @@ class RaidNotify(commands.Cog):
                 continue
             self.last_sent[guild.id] = now_moscow.strftime("%Y-%m-%d %H:%M")
 
-            print(f"🔔 RaidNotify: отправка на сервер {guild.name} в {current_time_str}")
-
+            print(f"RaidNotify: глас возвещён на сервере {guild.name} в {current_time_str}")
             for _ in range(5):
-                await channel.send(f"{role.mention}, сбор на кв!")
+                await channel.send(f"{role.mention}, внемлите! Грядёт час Зова!")
                 await asyncio.sleep(1)
 
             today = now_moscow.strftime("%Y-%m-%d")
@@ -77,21 +73,21 @@ class RaidNotify(commands.Cog):
                         chosen = random.choice(bonus_files)
                         file_path = os.path.join(bonus_folder, chosen)
                         file = discord.File(file_path, filename=chosen)
+                        await channel.send(file=file)
                         await set_last_bonus_date(guild.id, today)
-                        print(f"🎁 RaidNotify: бонус отправлен на сервер {guild.name}")
+                        print(f"RaidNotify: знамение послано на сервер {guild.name}")
 
-    # ---------- Команды настройки ----------
-    @app_commands.command(name="raid_channel", description="Установить канал для уведомлений")
+    @app_commands.command(name="raid_channel", description="Установить канал для уведомлений о сборе")
     @app_commands.default_permissions(administrator=True)
     async def set_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):
         await set_raid_channel(interaction.guild.id, channel.id)
-        await interaction.response.send_message(f"📢 Канал: {channel.mention}", ephemeral=True)
+        await interaction.response.send_message(f"Придел для гласа освящён: {channel.mention}", ephemeral=True)
 
     @app_commands.command(name="raid_role", description="Установить роль для пинга")
     @app_commands.default_permissions(administrator=True)
     async def set_role(self, interaction: discord.Interaction, role: discord.Role):
         await set_raid_role(interaction.guild.id, role.id)
-        await interaction.response.send_message(f"👥 Роль: {role.mention}", ephemeral=True)
+        await interaction.response.send_message(f"Сан для призыва: {role.mention}", ephemeral=True)
 
     @app_commands.command(name="raid_days", description="Установить дни недели (1=пн...7=вс) через запятую")
     @app_commands.default_permissions(administrator=True)
@@ -101,11 +97,11 @@ class RaidNotify(commands.Cog):
             if not days_list:
                 raise ValueError
             await set_raid_days(interaction.guild.id, days_list)
-            await interaction.response.send_message(f"📅 Дни: {', '.join(map(str, days_list))}", ephemeral=True)
+            await interaction.response.send_message(f"Дни страданий: {', '.join(map(str, days_list))}", ephemeral=True)
         except:
-            await interaction.response.send_message("❌ Ошибка: введите числа от 1 до 7 через запятую", ephemeral=True)
+            await interaction.response.send_message("Ошибка: введите числа от 1 до 7 через запятую", ephemeral=True)
 
-    @app_commands.command(name="raid_times", description="Установить время уведомлений, например: 19:40,19:45,19:50,19:55")
+    @app_commands.command(name="raid_times", description="Установить время уведомлений (например: 19:40,19:45,19:50,19:55)")
     @app_commands.default_permissions(administrator=True)
     async def set_times(self, interaction: discord.Interaction, times: str):
         times_list = [t.strip() for t in times.split(',')]
@@ -119,22 +115,22 @@ class RaidNotify(commands.Cog):
                 valid = False
                 break
         if not valid:
-            await interaction.response.send_message("❌ Неверный формат. Используйте HH:MM через запятую", ephemeral=True)
+            await interaction.response.send_message("Неверный формат времени. Используйте ЧЧ:ММ через запятую", ephemeral=True)
             return
         await set_raid_times(interaction.guild.id, times_list)
-        await interaction.response.send_message(f"⏰ Время: {', '.join(times_list)}", ephemeral=True)
+        await interaction.response.send_message(f"Часы гласа: {', '.join(times_list)}", ephemeral=True)
 
-    @app_commands.command(name="raid_reset_times", description="Сбросить время на 19:40,19:45,19:50,19:55")
+    @app_commands.command(name="raid_reset_times", description="Сбросить время уведомлений на 19:40,19:45,19:50,19:55")
     @app_commands.default_permissions(administrator=True)
     async def reset_times(self, interaction: discord.Interaction):
         await reset_raid_times(interaction.guild.id)
-        await interaction.response.send_message(f"⏰ Время сброшено на стандартное: {', '.join(DEFAULT_TIMES)}", ephemeral=True)
+        await interaction.response.send_message(f"Часы гласа сброшены на изначальные: {', '.join(DEFAULT_TIMES)}", ephemeral=True)
 
     @app_commands.command(name="raid_enable", description="Включить/отключить уведомления")
     @app_commands.default_permissions(administrator=True)
     async def set_enable(self, interaction: discord.Interaction, enabled: bool):
         await set_raid_enabled(interaction.guild.id, enabled)
-        status = "включены ✅" if enabled else "выключены ❌"
+        status = "освящены" if enabled else "отлучены"
         await interaction.response.send_message(f"Уведомления {status}.", ephemeral=True)
 
     @app_commands.command(name="raid_postpone", description="Отложить следующий сбор на 1 день")
@@ -143,34 +139,33 @@ class RaidNotify(commands.Cog):
         now = datetime.datetime.now(MOSCOW_TZ)
         until = now + datetime.timedelta(days=1)
         await set_raid_postpone(interaction.guild.id, until.timestamp())
-        await interaction.response.send_message(f"⏸️ Отложено до {until.strftime('%Y-%m-%d %H:%M')} МСК.", ephemeral=True)
+        await interaction.response.send_message(f"Глас отложен до {until.strftime('%Y-%m-%d %H:%M')} МСК.", ephemeral=True)
 
     @app_commands.command(name="raid_cancel_postpone", description="Отменить отложенный сбор")
     @app_commands.default_permissions(administrator=True)
     async def cancel_postpone(self, interaction: discord.Interaction):
-        await set_raid_postpone(interaction.guild.id, None)  # сбрасываем postpone_until
-        await interaction.response.send_message("✅ Отложенный сбор отменён.", ephemeral=True)
+        await cancel_raid_postpone(interaction.guild.id)
+        await interaction.response.send_message("Отложение отменено. Глас вернётся в обычный час.", ephemeral=True)
 
     @app_commands.command(name="raid_settings", description="Показать текущие настройки")
     @app_commands.default_permissions(administrator=True)
     async def show_settings(self, interaction: discord.Interaction):
         settings = await get_raid_settings(interaction.guild.id)
-        if not settings or not settings.get("channel_id"):
-            await interaction.response.send_message("❌ Настройки не заданы. Используйте `/raid_channel`, `/raid_role`, `/raid_days`, затем `/raid_enable true`.", ephemeral=True)
+        if not settings or not settings["channel_id"]:
+            await interaction.response.send_message("Настройки не заданы.", ephemeral=True)
             return
-
         channel = interaction.guild.get_channel(settings["channel_id"])
         role = interaction.guild.get_role(settings["role_id"])
-        days = settings.get("days", [])
-        times = settings.get("times", DEFAULT_TIMES)
-        enabled = "✅ Включено" if settings.get("enabled") else "❌ Выключено"
-        embed = discord.Embed(title="📋 Настройки уведомлений о сборе", color=discord.Color.blue())
-        embed.add_field(name="Канал", value=channel.mention if channel else "❌ Не найден", inline=False)
-        embed.add_field(name="Роль", value=role.mention if role else "❌ Не найдена", inline=False)
-        embed.add_field(name="Дни недели", value=", ".join(map(str, days)) if days else "Все дни", inline=False)
-        embed.add_field(name="Время", value=", ".join(times), inline=False)
+        days = settings["days"] if settings["days"] else []
+        times = settings["times"] if settings["times"] else DEFAULT_TIMES
+        enabled = "Освящено" if settings["enabled"] else "Отлучено"
+        embed = discord.Embed(title="Каноны гласа", color=discord.Color.blue())
+        embed.add_field(name="Придел", value=channel.mention if channel else "Не найден", inline=False)
+        embed.add_field(name="Сан", value=role.mention if role else "Не найден", inline=False)
+        embed.add_field(name="Дни страданий", value=", ".join(map(str, days)) if days else "Все дни", inline=False)
+        embed.add_field(name="Часы гласа", value=", ".join(times), inline=False)
         embed.add_field(name="Статус", value=enabled, inline=False)
-        if settings.get("postpone_until"):
+        if settings["postpone_until"]:
             dt = datetime.datetime.fromtimestamp(settings["postpone_until"], tz=MOSCOW_TZ)
             embed.add_field(name="Отложено до", value=dt.strftime('%Y-%m-%d %H:%M МСК'), inline=False)
         await interaction.response.send_message(embed=embed, ephemeral=True)

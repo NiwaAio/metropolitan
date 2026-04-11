@@ -1,10 +1,11 @@
-# Secrets
+# Secrets and credentials
 .env
+google_creds.json
+*.pem
+*.key
+*.crt
 token.txt
 secret.txt
-*.key
-*.pem
-*.crt
 
 # Database
 data/*.db
@@ -22,6 +23,10 @@ env/
 .virtualenvs/
 pip-wheel-metadata/
 *.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # IDE
 .idea/
@@ -29,6 +34,8 @@ pip-wheel-metadata/
 *.iml
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
 
 # Logs
 logs/
@@ -37,3 +44,14 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+
+# OS generated files
+desktop.ini
+ehthumbs.db
+Icon?
+
+# Project specific
+assets/raid_bonus/*.png
+assets/raid_bonus/*.jpg
+assets/raid_bonus/*.gif
+google_creds.json

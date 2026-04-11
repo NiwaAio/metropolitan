@@ -7,9 +7,22 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 if not TOKEN:
     raise ValueError("Переменная окружения DISCORD_TOKEN не найдена! Убедитесь, что файл .env существует и содержит DISCORD_TOKEN=...")
 
-LOG_CHANNEL_ID = 1490741575431487649  # ID канала для логов
+OWNER_IDS = [928223250255863848]
+
+ROLE_COLORS = {
+    "Лидер": 1487123965880041612,
+    "Полковник": 1487125416463569017,
+    "Офицер": 1487125669036167258,
+    "Сержант": 1487126005759086782,
+    "Боец": 1487126430444949634,
+}
+
+LOG_CHANNEL_ID = None
 WELCOME_CHANNEL_ID = None
 AUTO_ROLE_ID = None
+
+GOOGLE_CREDENTIALS_FILE = "google_creds.json"
+GOOGLE_SHEET_ID = "1mu6DcLXfK_9uWOgYS7ccJefozJfbx8yXAbSHXze8yLc"
 
 MAX_WARNINGS = 3
 MUTE_DURATION_WARN = 3600
