@@ -446,6 +446,20 @@ async def get_all_attendance_records(guild_id: int):
             rows = await cursor.fetchall()
             return [{"date": r[0], "check_time": r[1], "stage": r[2], "present": list(map(int, r[3].split(','))) if r[3] else [], "absent": list(map(int, r[4].split(','))) if r[4] else []} for r in rows]
 
+async def get_all_attendance_records_for_export(guild_id: int):
+    return await get_all_attendance_records(guild_id)
+
+async def import_attendance_records(guild_id: int, records: list):
+    for rec in records:
+        await save_attendance_record(
+            guild_id,
+            rec["date"],
+            rec["check_time"],
+            rec["stage"],
+            rec["present"],
+            rec["absent"]
+        )
+
 async def get_ticket_config(guild_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute("SELECT channel_id, category_id, admin_role_id, message_id FROM ticket_config WHERE guild_id=?", (guild_id,)) as cursor:
