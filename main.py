@@ -32,6 +32,7 @@ class MyBot(commands.Bot):
         await self.load_extension("cogs.ocr_attendance")
         await self.load_extension("cogs.ticket_registration")
         await self.load_extension("cogs.report_generator")
+        await self.load_extension("cogs.ticket_appeal")
 
         await database.init_db()
 

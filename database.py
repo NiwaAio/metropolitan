@@ -248,6 +248,28 @@ async def init_db():
                              REAL
                          )
                          """)
+        await db.execute("""
+                         CREATE TABLE IF NOT EXISTS appeal_tickets
+                         (
+                             ticket_id
+                             INTEGER
+                             PRIMARY
+                             KEY
+                             AUTOINCREMENT,
+                             guild_id
+                             INTEGER,
+                             user_id
+                             INTEGER,
+                             channel_id
+                             INTEGER,
+                             created_at
+                             REAL,
+                             status
+                             TEXT
+                             DEFAULT
+                             'open'
+                         )
+                         """)
         columns = await db.execute_fetchall("PRAGMA table_info(raid_notify)")
         existing = [col[1] for col in columns]
         if 'times' not in existing:
@@ -694,4 +716,34 @@ async def get_reg_ticket_by_channel(channel_id: int):
 async def delete_reg_ticket(channel_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("DELETE FROM reg_tickets WHERE channel_id=?", (channel_id,))
+        await db.commit()
+async def create_appeal_ticket(guild_id: int, user_id: int, channel_id: int) -> int:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "INSERT INTO appeal_tickets (guild_id, user_id, channel_id, created_at) VALUES (?, ?, ?, ?)",
+            (guild_id, user_id, channel_id, asyncio.get_event_loop().time())
+        )
+        await db.commit()
+        return cursor.lastrowid
+
+async def get_appeal_ticket_by_user(guild_id: int, user_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT ticket_id, channel_id, status FROM appeal_tickets WHERE guild_id=? AND user_id=? AND status='open'", (guild_id, user_id)) as cursor:
+            row = await cursor.fetchone()
+            return {"ticket_id": row[0], "channel_id": row[1], "status": row[2]} if row else None
+
+async def get_appeal_ticket_by_channel(channel_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT ticket_id, guild_id, user_id, status FROM appeal_tickets WHERE channel_id=?", (channel_id,)) as cursor:
+            row = await cursor.fetchone()
+            return {"ticket_id": row[0], "guild_id": row[1], "user_id": row[2], "status": row[3]} if row else None
+
+async def close_appeal_ticket(channel_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE appeal_tickets SET status='closed' WHERE channel_id=?", (channel_id,))
+        await db.commit()
+
+async def delete_appeal_ticket(channel_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM appeal_tickets WHERE channel_id=?", (channel_id,))
         await db.commit()
