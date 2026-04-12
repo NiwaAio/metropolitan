@@ -36,7 +36,7 @@ class MyBot(commands.Bot):
 
         await database.init_db()
 
-        self.loop.create_task(self.check_temp_roles())
+        # self.loop.create_task(self.check_temp_roles())
 
     async def check_temp_roles(self):
         await self.wait_until_ready()
