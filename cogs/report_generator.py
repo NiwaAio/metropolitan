@@ -1,4 +1,5 @@
 import discord
+import json
 from discord.ext import commands
 from discord import app_commands
 import datetime
@@ -33,10 +34,17 @@ class ReportGenerator(commands.Cog):
 
     def init_google_sheets(self):
         try:
-            creds = Credentials.from_service_account_file(
-                config.GOOGLE_CREDENTIALS_FILE,
-                scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-            )
+            if config.GOOGLE_CREDENTIALS_JSON:
+                creds_dict = json.loads(config.GOOGLE_CREDENTIALS_JSON)
+                creds = Credentials.from_service_account_info(
+                    creds_dict,
+                    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+                )
+            else:
+                creds = Credentials.from_service_account_file(
+                    config.GOOGLE_CREDENTIALS_FILE,
+                    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+                )
             self.gc = gspread.authorize(creds)
             print("✅ Google Sheets клиент инициализирован")
         except Exception as e:
