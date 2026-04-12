@@ -73,7 +73,7 @@ class AdminActionView(discord.ui.View):
 
     @discord.ui.button(label="✝️ Даровать прощение", style=discord.ButtonStyle.success, custom_id="forgive")
     async def forgive(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not is_admin(interaction):
+        if not is_admin(interaction.user):
             await interaction.response.send_message("❌ Только служители могут даровать прощение.", ephemeral=True)
             return
         if self.resolved:
@@ -92,7 +92,7 @@ class AdminActionView(discord.ui.View):
 
     @discord.ui.button(label="⛔ Отказать в прощении", style=discord.ButtonStyle.danger, custom_id="deny")
     async def deny(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not is_admin(interaction):
+        if not is_admin(interaction.user):
             await interaction.response.send_message("❌ Только служители могут отказывать в прощении.", ephemeral=True)
             return
         if self.resolved:
@@ -128,8 +128,7 @@ class DeleteTicketView(discord.ui.View):
 
     @discord.ui.button(label="🗑️ Предать огню", style=discord.ButtonStyle.danger, custom_id="delete_ticket")
     async def delete_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        admin_role = discord.utils.get(interaction.guild.roles, name="Митрополит")
-        if not (admin_role and admin_role in interaction.user.roles):
+        if not is_admin(interaction.user):
             await interaction.response.send_message("❌ Только служители могут уничтожать свитки.", ephemeral=True)
             return
         await interaction.response.send_message("🗑️ Свиток будет предан огню через 5 секунд...")
