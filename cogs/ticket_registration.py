@@ -4,8 +4,6 @@ from discord import app_commands
 import asyncio
 import random
 import re
-import config
-from utils import is_admin
 from database import (
     get_ticket_config,
     set_ticket_config,
@@ -32,11 +30,17 @@ class RegistrationTicketView(discord.ui.View):
             else:
                 await delete_reg_ticket(active["channel_id"])
 
-        category = interaction.guild.get_channel(config.REGISTRATION_CATEGORY_ID)
-        if not category:
-            await interaction.response.send_message("❌ Категория для свитков не найдена. Укажите её в config.py.",
-                                                    ephemeral=True)
+        ticket_config = await get_ticket_config(interaction.guild.id)
+        if not ticket_config:
+            await interaction.response.send_message("❌ Система регистрации не настроена. Обратись к Митрополиту.", ephemeral=True)
             return
+
+        category = None
+        if ticket_config.get("category_id"):
+            category = interaction.guild.get_channel(ticket_config["category_id"])
+            if not category:
+                await interaction.response.send_message("❌ Святая категория не найдена. Обратись к Митрополиту.", ephemeral=True)
+                return
 
         ticket_number = random.randint(1000, 9999)
         channel_name = f"исповедь-{ticket_number}"
@@ -46,13 +50,16 @@ class RegistrationTicketView(discord.ui.View):
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_messages=True, attach_files=True),
             interaction.guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_messages=True, manage_channels=True)
         }
-        if config["admin_role_id"]:
-            admin_role = interaction.guild.get_role(config["admin_role_id"])
+        if ticket_config.get("admin_role_id"):
+            admin_role = interaction.guild.get_role(ticket_config["admin_role_id"])
             if admin_role:
                 overwrites[admin_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_messages=True)
 
         try:
-            channel = await category.create_text_channel(name=channel_name, overwrites=overwrites)
+            if category:
+                channel = await category.create_text_channel(name=channel_name, overwrites=overwrites)
+            else:
+                channel = await interaction.guild.create_text_channel(name=channel_name, overwrites=overwrites)
         except Exception as e:
             await interaction.response.send_message(f"❌ Не удалось создать канал: {e}", ephemeral=True)
             return
@@ -67,7 +74,7 @@ class RegistrationTicketView(discord.ui.View):
                 "1. Напиши свой игровой никнейм (без ошибок! это важно).\n"
                 "   **Никнейм может содержать только буквы и символ подчёркивания `_`. Цифры запрещены.**\n"
                 "2. Количество часов в игре.\n"
-                "3. Сколько КВ в неделю ты готов играть.\n"
+                "3. Сколько КВ в неделю ты готов страдать.\n"
                 "4. Возраст.\n"
                 "5. Прикрепи скриншот со всем снаряжением, включая сборку.\n\n"
                 "**После того как напишешь никнейм, нажми кнопку «Отправить никнейм».**\n"
@@ -96,7 +103,6 @@ class TicketActionView(discord.ui.View):
             await interaction.response.send_message("❌ Кнопка уже была использована. Создай новый свиток, если хочешь изменить никнейм.", ephemeral=True)
             return
 
-        # Отключаем кнопку
         self.used = True
         button.disabled = True
         await interaction.message.edit(view=self)
@@ -113,22 +119,17 @@ class TicketActionView(discord.ui.View):
                 if not lines:
                     continue
                 first_line = lines[0]
-                # Убираем нумерацию в начале (цифра с точкой, скобкой, дефисом)
                 cleaned = re.sub(r'^\s*\d+[\.\)\-]\s*', '', first_line)
-                # Убираем только Markdown-символы, но НЕ подчёркивание (оставляем _)
                 cleaned = re.sub(r'[*`~]', '', cleaned)
                 if not cleaned:
                     await interaction.response.send_message("❌ Не удалось распознать никнейм. Напиши его отдельной строкой без цифр в начале.", ephemeral=True)
                     return
-                # Проверяем наличие цифр
                 if re.search(r'\d', cleaned):
                     await interaction.response.send_message("❌ Никнейм не может содержать цифры. Напиши никнейм без цифр.", ephemeral=True)
                     return
-                # Разрешены: буквы (любого алфавита) и подчёркивание
                 if not re.fullmatch(r'^[A-Za-zА-Яа-яёЁ_]+$', cleaned):
                     await interaction.response.send_message("❌ Никнейм может содержать только буквы и символ подчёркивания `_`. Исправь и нажми кнопку снова (кнопка активна один раз, создай новый свиток).", ephemeral=True)
                     return
-                # Привязываем никнейм
                 await set_ign_link(self.user_id, interaction.guild.id, cleaned)
                 await interaction.response.send_message(f"✅ Господь принял твой никнейм: `{cleaned}`. Теперь жди решения Митрополита.", ephemeral=False)
                 return
@@ -136,7 +137,13 @@ class TicketActionView(discord.ui.View):
 
     @discord.ui.button(label="🔒 Закрыть свиток", style=discord.ButtonStyle.danger, custom_id="close_ticket_admin")
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not is_admin:
+        ticket_config = await get_ticket_config(interaction.guild.id)
+        is_admin = False
+        if ticket_config and ticket_config.get("admin_role_id"):
+            admin_role = interaction.guild.get_role(ticket_config["admin_role_id"])
+            if admin_role and admin_role in interaction.user.roles:
+                is_admin = True
+        if not is_admin and not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("❌ Только Митрополит или его слуги могут закрыть этот свиток.", ephemeral=True)
             return
 
@@ -155,7 +162,7 @@ class TicketActionView(discord.ui.View):
 
         embed = discord.Embed(
             title="🔒 Свиток запечатан",
-            description="Исповедь принята. Канал будет удалён служителем.",
+            description="Исповедь принята. Канал будет предан огню служителем.",
             color=discord.Color.dark_red()
         )
         view = DeleteTicketView()
@@ -168,13 +175,13 @@ class DeleteTicketView(discord.ui.View):
 
     @discord.ui.button(label="🗑️ Уничтожить свиток", style=discord.ButtonStyle.danger, custom_id="delete_ticket_admin")
     async def delete_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        config = await get_ticket_config(interaction.guild.id)
+        ticket_config = await get_ticket_config(interaction.guild.id)
         is_admin = False
-        if config and config["admin_role_id"]:
-            admin_role = interaction.guild.get_role(config["admin_role_id"])
+        if ticket_config and ticket_config.get("admin_role_id"):
+            admin_role = interaction.guild.get_role(ticket_config["admin_role_id"])
             if admin_role and admin_role in interaction.user.roles:
                 is_admin = True
-        if not is_admin:
+        if not is_admin and not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("❌ Только служители могут уничтожать свитки.", ephemeral=True)
             return
         await interaction.response.send_message("🗑️ Свиток будет предан огню через 5 секунд...")
