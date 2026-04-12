@@ -1,4 +1,3 @@
-python
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -7,16 +6,19 @@ import io
 import re
 from PIL import Image
 import pytesseract
+import datetime
+import pytz
 from database import (
     get_attendance_settings,
     get_attendance_record_by_time,
     get_ign_by_user,
-    get_user_by_ign,
     get_all_ign_links,
     set_ign_link,
     delete_ign_link
 )
 import config
+
+MOSCOW_TZ = pytz.timezone('Europe/Moscow')
 
 class PaginationView(discord.ui.View):
     def __init__(self, embeds, author_id, timeout=60):
@@ -96,9 +98,7 @@ class OCRAttendance(commands.Cog):
             return
 
         target_time = times_list[stage-1]
-        today = asyncio.get_event_loop().time()
-        import datetime
-        now_moscow = datetime.datetime.now(pytz.timezone('Europe/Moscow'))
+        now_moscow = datetime.datetime.now(MOSCOW_TZ)
         today_str = now_moscow.strftime("%Y-%m-%d")
         record = await get_attendance_record_by_time(interaction.guild.id, today_str, target_time)
         if not record:
