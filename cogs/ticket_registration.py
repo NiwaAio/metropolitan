@@ -4,6 +4,8 @@ from discord import app_commands
 import asyncio
 import random
 import re
+import config
+from utils import is_admin
 from database import (
     get_ticket_config,
     set_ticket_config,
@@ -30,14 +32,10 @@ class RegistrationTicketView(discord.ui.View):
             else:
                 await delete_reg_ticket(active["channel_id"])
 
-        config = await get_ticket_config(interaction.guild.id)
-        if not config or not config["category_id"]:
-            await interaction.response.send_message("❌ Место для свитков не освящено. Обратись к Митрополиту.", ephemeral=True)
-            return
-
-        category = interaction.guild.get_channel(config["category_id"])
+        category = interaction.guild.get_channel(config.REGISTRATION_CATEGORY_ID)
         if not category:
-            await interaction.response.send_message("❌ Святая категория не найдена.", ephemeral=True)
+            await interaction.response.send_message("❌ Категория для свитков не найдена. Укажите её в config.py.",
+                                                    ephemeral=True)
             return
 
         ticket_number = random.randint(1000, 9999)
@@ -138,12 +136,6 @@ class TicketActionView(discord.ui.View):
 
     @discord.ui.button(label="🔒 Закрыть свиток", style=discord.ButtonStyle.danger, custom_id="close_ticket_admin")
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        config = await get_ticket_config(interaction.guild.id)
-        is_admin = False
-        if config and config["admin_role_id"]:
-            admin_role = interaction.guild.get_role(config["admin_role_id"])
-            if admin_role and admin_role in interaction.user.roles:
-                is_admin = True
         if not is_admin:
             await interaction.response.send_message("❌ Только Митрополит или его слуги могут закрыть этот свиток.", ephemeral=True)
             return

@@ -31,9 +31,10 @@ class AppealTicketView(discord.ui.View):
             else:
                 await delete_appeal_ticket(active["channel_id"])
 
-        category = interaction.guild.get_channel(config.APPEAL_CHANNEL_ID).category
+        category = interaction.guild.get_channel(config.APPEAL_CATEGORY_ID)
         if not category:
-            await interaction.response.send_message("❌ Место для покаяния не освящено. Обратись к Митрополиту.", ephemeral=True)
+            await interaction.response.send_message("❌ Категория для покаяния не найдена. Укажите её в config.py.",
+                                                    ephemeral=True)
             return
 
         ticket_number = random.randint(1000, 9999)
