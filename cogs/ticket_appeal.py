@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 import asyncio
 import random
+from utils import is_admin
 from database import (
     create_appeal_ticket,
     get_appeal_ticket_by_user,
@@ -54,8 +55,7 @@ class AppealTicketView(discord.ui.View):
             description=(
                 "**И прогневался Господь, увидев, как ты впал в ересь.**\n\n"
                 "Ты был отлучён от братства за свои прегрешения. Если желаешь оспорить это решение, напиши своё оправдание в этом канале.\n"
-                "**Митрополит или его слуги рассмотрят твою исповедь.**\n\n"
-                "После того как напишешь своё слово, нажми кнопку «Призвать Митрополита»."
+                "**Митрополит или его слуги рассмотрят твою исповедь.**"
             ),
             color=discord.Color.dark_red()
         )
@@ -73,7 +73,7 @@ class AdminActionView(discord.ui.View):
 
     @discord.ui.button(label="✝️ Даровать прощение", style=discord.ButtonStyle.success, custom_id="forgive")
     async def forgive(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not self.is_admin(interaction):
+        if not is_admin(interaction):
             await interaction.response.send_message("❌ Только служители могут даровать прощение.", ephemeral=True)
             return
         if self.resolved:
@@ -92,7 +92,7 @@ class AdminActionView(discord.ui.View):
 
     @discord.ui.button(label="⛔ Отказать в прощении", style=discord.ButtonStyle.danger, custom_id="deny")
     async def deny(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not self.is_admin(interaction):
+        if not is_admin(interaction):
             await interaction.response.send_message("❌ Только служители могут отказывать в прощении.", ephemeral=True)
             return
         if self.resolved:

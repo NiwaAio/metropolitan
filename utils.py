@@ -1,12 +1,22 @@
 import re
 from config import BAD_WORDS, WHITELIST_USER_IDS
+import discord
+import config
+
+def is_admin(member: discord.Member) -> bool:
+    if member.guild_permissions.administrator:
+        return True
+    if member.id in config.ADMIN_USER_IDS:
+        return True
+    for role_id in config.ADMIN_ROLE_IDS:
+        if member.get_role(role_id):
+            return True
+    return False
 
 def is_whitelisted(user_id: int) -> bool:
-    """Проверка, находится ли пользователь в белом списке"""
     return user_id in WHITELIST_USER_IDS
 
 def contains_bad_words(text: str) -> bool:
-    """Проверка, содержит ли текст целое слово из списка"""
     text_lower = text.lower()
     for word in BAD_WORDS:
         pattern = r'\b' + re.escape(word.lower()) + r'\b'
@@ -25,7 +35,6 @@ def contains_invite(text: str) -> bool:
     return False
 
 def parse_time_duration(arg: str) -> int:
-    """Переводит '15m', '2h', '1d' в секунды"""
     arg = arg.lower()
     if arg.endswith('s'):
         return int(arg[:-1])
