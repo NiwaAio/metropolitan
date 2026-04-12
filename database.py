@@ -747,3 +747,39 @@ async def delete_appeal_ticket(channel_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("DELETE FROM appeal_tickets WHERE channel_id=?", (channel_id,))
         await db.commit()
+
+async def get_all_warnings(guild_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT user_id, count FROM warnings WHERE guild_id=?", (guild_id,)) as cursor:
+            rows = await cursor.fetchall()
+            return [{"user_id": r[0], "count": r[1]} for r in rows]
+
+async def get_all_temp_roles(guild_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT user_id, role_id, until FROM temp_roles WHERE guild_id=?", (guild_id,)) as cursor:
+            rows = await cursor.fetchall()
+            return [{"user_id": r[0], "role_id": r[1], "until": r[2]} for r in rows]
+
+async def get_all_attendance_records(guild_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT date, check_time, stage, present, absent FROM attendance_records WHERE guild_id=? ORDER BY date, check_time", (guild_id,)) as cursor:
+            rows = await cursor.fetchall()
+            return [{"date": r[0], "check_time": r[1], "stage": r[2], "present": list(map(int, r[3].split(','))) if r[3] else [], "absent": list(map(int, r[4].split(','))) if r[4] else []} for r in rows]
+
+async def get_all_active_tickets(guild_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT user_id, channel_id, created_at FROM active_tickets WHERE guild_id=?", (guild_id,)) as cursor:
+            rows = await cursor.fetchall()
+            return [{"user_id": r[0], "channel_id": r[1], "created_at": r[2]} for r in rows]
+
+async def get_all_reg_tickets(guild_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT user_id, channel_id, created_at FROM reg_tickets WHERE guild_id=?", (guild_id,)) as cursor:
+            rows = await cursor.fetchall()
+            return [{"user_id": r[0], "channel_id": r[1], "created_at": r[2]} for r in rows]
+
+async def get_all_appeal_tickets(guild_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT user_id, channel_id, created_at, status FROM appeal_tickets WHERE guild_id=?", (guild_id,)) as cursor:
+            rows = await cursor.fetchall()
+            return [{"user_id": r[0], "channel_id": r[1], "created_at": r[2], "status": r[3]} for r in rows]
