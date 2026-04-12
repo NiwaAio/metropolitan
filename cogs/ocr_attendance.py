@@ -4,8 +4,7 @@ from discord import app_commands
 import io
 import re
 from PIL import Image
-import numpy as np
-import easyocr
+import pytesseract
 import datetime
 import pytz
 from database import (
@@ -17,8 +16,10 @@ from database import (
     delete_ign_link
 )
 
-
 MOSCOW_TZ = pytz.timezone('Europe/Moscow')
+
+pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+
 
 class PaginationView(discord.ui.View):
     def __init__(self, embeds, author_id, timeout=60):
@@ -48,15 +49,10 @@ class PaginationView(discord.ui.View):
             self.current += 1
             await self.update(interaction)
 
+
 class OCRAttendance(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.reader = None
-
-    def get_reader(self):
-        if self.reader is None:
-            self.reader = easyocr.Reader(['ru', 'en'], gpu=False)
-        return self.reader
 
     @app_commands.command(name="ign_link", description="Привязать игровой никнейм к пользователю")
     @app_commands.default_permissions(administrator=True)
@@ -114,13 +110,13 @@ class OCRAttendance(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         img_data = await image.read()
         img = Image.open(io.BytesIO(img_data))
-        img_np = np.array(img)
-        reader = self.get_reader()
-        result = reader.readtext(img_np, detail=0, paragraph=False)
-        raw_words = []
-        for line in result:
-            words = re.findall(r'[A-Za-zА-Яа-я0-9_]+', line)
-            raw_words.extend(words)
+        try:
+            text = pytesseract.image_to_string(img, lang='rus+eng')
+        except Exception as e:
+            await interaction.followup.send(f"❌ Ошибка распознавания: {e}. Убедитесь, что Tesseract установлен.", ephemeral=True)
+            return
+
+        raw_words = re.findall(r'[A-Za-zА-Яа-я0-9_]+', text)
         recognized = list(set([w for w in raw_words if len(w) >= 3]))
         if not recognized:
             await interaction.followup.send("❌ Не удалось распознать ни одного никнейма на изображении.", ephemeral=True)
@@ -156,6 +152,7 @@ class OCRAttendance(commands.Cog):
         embed.set_footer(text=f"Этап {stage} • Время {target_time}")
 
         await interaction.followup.send(embed=embed, ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(OCRAttendance(bot))
