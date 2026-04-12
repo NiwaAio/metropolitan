@@ -3,8 +3,8 @@ from discord.ext import commands
 from discord import app_commands
 import asyncio
 import random
-from utils import is_admin
 from database import (
+    get_ticket_config,
     create_appeal_ticket,
     get_appeal_ticket_by_user,
     get_appeal_ticket_by_channel,
@@ -22,6 +22,7 @@ class AppealTicketView(discord.ui.View):
     async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not interaction.guild:
             return
+
         active = await get_appeal_ticket_by_user(interaction.guild.id, interaction.user.id)
         if active:
             channel = interaction.guild.get_channel(active["channel_id"])
@@ -31,24 +32,33 @@ class AppealTicketView(discord.ui.View):
             else:
                 await delete_appeal_ticket(active["channel_id"])
 
-        category = interaction.guild.get_channel(config.APPEAL_CATEGORY_ID)
-        if not category:
-            await interaction.response.send_message("❌ Категория для покаяния не найдена. Укажите её в config.py.",
-                                                    ephemeral=True)
-            return
+        ticket_config = await get_ticket_config(interaction.guild.id)
+        category = None
+        if ticket_config and ticket_config.get("category_id"):
+            category = interaction.guild.get_channel(ticket_config["category_id"])
 
         ticket_number = random.randint(1000, 9999)
         channel_name = f"покаяние-{ticket_number}"
+
         overwrites = {
             interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_messages=True),
             interaction.guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_messages=True, manage_channels=True)
         }
-        admin_role = discord.utils.get(interaction.guild.roles, name="Митрополит")  # или ID роли админов
-        if admin_role:
-            overwrites[admin_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_messages=True)
+        if ticket_config and ticket_config.get("admin_role_id"):
+            admin_role = interaction.guild.get_role(ticket_config["admin_role_id"])
+            if admin_role:
+                overwrites[admin_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_messages=True)
 
-        channel = await category.create_text_channel(name=channel_name, overwrites=overwrites)
+        try:
+            if category:
+                channel = await category.create_text_channel(name=channel_name, overwrites=overwrites)
+            else:
+                channel = await interaction.guild.create_text_channel(name=channel_name, overwrites=overwrites)
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Не удалось создать канал: {e}", ephemeral=True)
+            return
+
         await create_appeal_ticket(interaction.guild.id, interaction.user.id, channel.id)
 
         embed = discord.Embed(
@@ -72,9 +82,17 @@ class AdminActionView(discord.ui.View):
         self.guild_id = guild_id
         self.resolved = False
 
+    async def is_admin(self, interaction: discord.Interaction) -> bool:
+        ticket_config = await get_ticket_config(interaction.guild.id)
+        if ticket_config and ticket_config.get("admin_role_id"):
+            admin_role = interaction.guild.get_role(ticket_config["admin_role_id"])
+            if admin_role and admin_role in interaction.user.roles:
+                return True
+        return interaction.user.guild_permissions.administrator
+
     @discord.ui.button(label="✝️ Даровать прощение", style=discord.ButtonStyle.success, custom_id="forgive")
     async def forgive(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not is_admin(interaction.user):
+        if not await self.is_admin(interaction):
             await interaction.response.send_message("❌ Только служители могут даровать прощение.", ephemeral=True)
             return
         if self.resolved:
@@ -93,7 +111,7 @@ class AdminActionView(discord.ui.View):
 
     @discord.ui.button(label="⛔ Отказать в прощении", style=discord.ButtonStyle.danger, custom_id="deny")
     async def deny(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not is_admin(interaction.user):
+        if not await self.is_admin(interaction):
             await interaction.response.send_message("❌ Только служители могут отказывать в прощении.", ephemeral=True)
             return
         if self.resolved:
@@ -119,17 +137,21 @@ class AdminActionView(discord.ui.View):
         view = DeleteTicketView()
         await interaction.channel.send(embed=embed, view=view)
 
-    def is_admin(self, interaction: discord.Interaction) -> bool:
-        admin_role = discord.utils.get(interaction.guild.roles, name="Митрополит")
-        return admin_role and admin_role in interaction.user.roles
-
 class DeleteTicketView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
+    async def is_admin(self, interaction: discord.Interaction) -> bool:
+        ticket_config = await get_ticket_config(interaction.guild.id)
+        if ticket_config and ticket_config.get("admin_role_id"):
+            admin_role = interaction.guild.get_role(ticket_config["admin_role_id"])
+            if admin_role and admin_role in interaction.user.roles:
+                return True
+        return interaction.user.guild_permissions.administrator
+
     @discord.ui.button(label="🗑️ Предать огню", style=discord.ButtonStyle.danger, custom_id="delete_ticket")
     async def delete_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not is_admin(interaction.user):
+        if not await self.is_admin(interaction):
             await interaction.response.send_message("❌ Только служители могут уничтожать свитки.", ephemeral=True)
             return
         await interaction.response.send_message("🗑️ Свиток будет предан огню через 5 секунд...")
@@ -142,11 +164,7 @@ class TicketAppeal(commands.Cog):
 
     @app_commands.command(name="appeal_setup", description="Создать священное послание для покаяния")
     @app_commands.default_permissions(administrator=True)
-    async def setup_appeal(self, interaction: discord.Interaction):
-        channel = interaction.guild.get_channel(config.APPEAL_CHANNEL_ID)
-        if not channel:
-            await interaction.response.send_message("❌ Канал для покаяния не указан в config.APPEAL_CHANNEL_ID", ephemeral=True)
-            return
+    async def setup_appeal(self, interaction: discord.Interaction, channel: discord.TextChannel):
         embed = discord.Embed(
             title="📜 Покаяние",
             description=(

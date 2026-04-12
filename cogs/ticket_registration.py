@@ -32,11 +32,11 @@ class RegistrationTicketView(discord.ui.View):
 
         ticket_config = await get_ticket_config(interaction.guild.id)
         if not ticket_config:
-            await interaction.response.send_message("❌ Система регистрации не настроена. Обратись к Митрополиту.", ephemeral=True)
-            return
+            await set_ticket_config(interaction.guild.id)
+            ticket_config = await get_ticket_config(interaction.guild.id)
 
         category = None
-        if ticket_config.get("category_id"):
+        if ticket_config and ticket_config.get("category_id"):
             category = interaction.guild.get_channel(ticket_config["category_id"])
             if not category:
                 await interaction.response.send_message("❌ Святая категория не найдена. Обратись к Митрополиту.", ephemeral=True)
