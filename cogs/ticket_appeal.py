@@ -162,9 +162,9 @@ class TicketAppeal(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="appeal_create", description="Создать священное послание для покаяния в текущем канале")
+    @app_commands.command(name="appeal_setup", description="Создать священное послание для покаяния в текущем канале")
     @app_commands.default_permissions(administrator=True)
-    async def appeal_create(self, interaction: discord.Interaction):
+    async def appeal_setup(self, interaction: discord.Interaction):
         embed = discord.Embed(
             title="📜 Покаяние",
             description=(
