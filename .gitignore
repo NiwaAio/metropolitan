@@ -8,7 +8,7 @@ token.txt
 secret.txt
 
 # Database
-data/*.db
+*.db
 *.sqlite
 *.sqlite3
 
