@@ -34,6 +34,7 @@ async def init_db():
         await db.execute("""
             CREATE TABLE IF NOT EXISTS guild_settings (
                 guild_id INTEGER PRIMARY KEY,
+                prefix TEXT DEFAULT '!',
                 filter_enabled BOOLEAN DEFAULT 1,
                 log_channel_id INTEGER,
                 verify_role_id INTEGER,
@@ -147,6 +148,10 @@ async def init_db():
             pass
         try:
             await db.execute("ALTER TABLE wiki_entries ADD COLUMN guild_id INTEGER")
+        except:
+            pass
+        try:
+            await db.execute("ALTER TABLE guild_settings ADD COLUMN prefix TEXT DEFAULT '!'")
         except:
             pass
 
