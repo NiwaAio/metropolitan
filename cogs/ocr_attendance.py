@@ -18,7 +18,7 @@ from database import (
 
 MOSCOW_TZ = pytz.timezone('Europe/Moscow')
 
-pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+# pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
 
 
 class PaginationView(discord.ui.View):
