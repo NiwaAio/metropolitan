@@ -7,8 +7,8 @@ google_creds.json
 token.txt
 secret.txt
 
-# Database
-*.db
+# Database files
+data/*.db
 *.sqlite
 *.sqlite3
 
