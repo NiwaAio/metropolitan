@@ -83,28 +83,34 @@ class OCRAttendance(commands.Cog):
         view = PaginationView(embeds, interaction.user.id)
         await interaction.response.send_message(embed=embeds[0], view=view, ephemeral=True)
 
-    @app_commands.command(name="check_screenshot", description="Распознать никнеймы с изображения и сравнить с присутствием на этапе (2,4,6)")
+    @app_commands.command(name="check_screenshot",
+                          description="Распознать никнеймы с изображения и сравнить с присутствием на этапе (1,2,3)")
     @app_commands.default_permissions(administrator=True)
     async def check_screenshot(self, interaction: discord.Interaction, stage: int, image: discord.Attachment):
-        if stage not in [2, 4, 6]:
-            await interaction.response.send_message("❌ Этап должен быть 2, 4 или 6.", ephemeral=True)
+        if stage not in [1, 2, 3]:
+            await interaction.response.send_message("❌ Этап должен быть 1, 2 или 3.", ephemeral=True)
             return
 
         settings = await get_attendance_settings(interaction.guild.id)
         if not settings or not settings.get("times"):
-            await interaction.response.send_message("❌ Сначала настройте мониторинг посещаемости (команды /attendance_...).", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ Сначала настройте мониторинг посещаемости (команды /attendance_...).", ephemeral=True)
             return
         times_list = settings["times"]
-        if len(times_list) < stage:
-            await interaction.response.send_message(f"❌ Этап {stage} не существует (доступно только {len(times_list)} времён).", ephemeral=True)
+        if len(times_list) != 6:
+            await interaction.response.send_message("❌ Должно быть 6 времён проверки.", ephemeral=True)
             return
 
-        target_time = times_list[stage-1]
+        time_index = (stage * 2) - 1
+        target_time = times_list[time_index]
+
         now_moscow = datetime.datetime.now(MOSCOW_TZ)
         today_str = now_moscow.strftime("%Y-%m-%d")
         record = await get_attendance_record_by_time(interaction.guild.id, today_str, target_time)
         if not record:
-            await interaction.response.send_message(f"❌ Нет данных о посещаемости на время {target_time} сегодня. Возможно, проверка ещё не проходила.", ephemeral=True)
+            await interaction.response.send_message(
+                f"❌ Нет данных о посещаемости на время {target_time} сегодня. Возможно, проверка ещё не проходила.",
+                ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
