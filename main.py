@@ -33,6 +33,7 @@ class MyBot(commands.Bot):
         await self.load_extension("cogs.ticket_registration")
         await self.load_extension("cogs.report_generator")
         await self.load_extension("cogs.ticket_appeal")
+        await self.load_extension("cogs.config_backup")
 
         await database.init_db()
 
